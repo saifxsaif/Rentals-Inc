@@ -1,4 +1,4 @@
-import { UserRole } from "../generated/prisma/index.js";
+import { UserRole } from "@prisma/client";
 
 export const roleValues: UserRole[] = ["applicant", "reviewer", "admin"];
 

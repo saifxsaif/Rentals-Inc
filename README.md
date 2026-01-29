@@ -30,7 +30,8 @@ docker run --name rentals-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_USE
 cd apps/api
 npm install
 npx prisma migrate dev --name init
-npm run dev
+cd ../..
+vercel dev --cwd apps/api --listen 3001
 ```
 
 3) Frontend (Web):

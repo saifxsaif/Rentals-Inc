@@ -1,4 +1,4 @@
-import type { Document } from "../generated/prisma/index.js";
+import type { Document } from "@prisma/client";
 
 export type FraudSignal = {
   code: string;

@@ -1,6 +1,6 @@
 import { prisma } from "./prisma.js";
 import { analyzeDocuments } from "./ai.js";
-import type { UserRole } from "../generated/prisma/index.js";
+import type { UserRole } from "@prisma/client";
 
 const FRAUD_THRESHOLD = 0.7;
 
