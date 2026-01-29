@@ -1,0 +1,88 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ApplicationStatus {
+  submitted
+  under_review
+  approved
+  flagged
+}
+
+enum UserRole {
+  applicant
+  reviewer
+  admin
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  role      UserRole @default(applicant)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  applications Application[]
+}
+
+model Application {
+  id             String            @id @default(cuid())
+  applicantName  String
+  applicantEmail String
+  applicantPhone String?
+  status         ApplicationStatus @default(submitted)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  applicantId String?
+  applicant   User? @relation(fields: [applicantId], references: [id])
+
+  documents     Document[]
+  reviewResults ReviewResult[]
+  auditEvents   AuditEvent[]
+}
+
+model Document {
+  id            String      @id @default(cuid())
+  applicationId String
+  filename      String
+  mimeType      String
+  sizeBytes     Int
+  storageUrl    String?
+  createdAt     DateTime    @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+model ReviewResult {
+  id            String   @id @default(cuid())
+  applicationId String
+  fraudScore    Float
+  summary       String
+  signals       Json?
+  createdAt     DateTime @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+model AuditEvent {
+  id            String   @id @default(cuid())
+  applicationId String
+  actorRole     UserRole
+  action        String
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
