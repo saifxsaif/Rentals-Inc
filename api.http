@@ -1,0 +1,35 @@
+@baseUrl = http://localhost:3001
+
+### Create application
+# @name createApplication
+POST {{baseUrl}}/api/applications
+Content-Type: application/json
+X-User-Role: admin
+
+{
+  "applicantName": "Test Applicant",
+  "applicantEmail": "test@applicant.com",
+  "applicantPhone": "555-0101",
+  "documents": [
+    {
+      "filename": "id-card.pdf",
+      "mimeType": "application/pdf",
+      "sizeBytes": 12345
+    },
+    {
+      "filename": "paystub.pdf",
+      "mimeType": "application/pdf",
+      "sizeBytes": 23456
+    }
+  ]
+}
+
+### Get application by ID (set after running first request)
+@applicationId = {{createApplication.response.body.application.id}}
+GET {{baseUrl}}/api/applications/{{applicationId}}
+X-User-Role: admin
+
+### Applicant view (email must match)
+GET {{baseUrl}}/api/applications/{{applicationId}}
+X-User-Role: applicant
+X-Applicant-Email: test@applicant.com

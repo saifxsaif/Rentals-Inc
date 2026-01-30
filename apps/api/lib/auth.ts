@@ -22,3 +22,7 @@ export function canCreateApplication(role: UserRole): boolean {
 export function canViewApplication(role: UserRole): boolean {
   return role === "applicant" || role === "reviewer" || role === "admin";
 }
+
+export function canDecideApplication(role: UserRole): boolean {
+  return role === "reviewer" || role === "admin";
+}

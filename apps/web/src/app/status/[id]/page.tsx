@@ -29,10 +29,13 @@ type ApplicationResponse = {
   error?: string;
 };
 
+type Decision = "approved" | "flagged";
+
 export default function StatusPage({ params }: { params: { id: string } }) {
   const [role, setRole] = useState<Role>("applicant");
   const [email, setEmail] = useState("");
   const [response, setResponse] = useState<ApplicationResponse | null>(null);
+  const [decisionNote, setDecisionNote] = useState("");
   const [loading, setLoading] = useState(false);
 
   const apiBaseUrl = useMemo(
@@ -55,6 +58,34 @@ export default function StatusPage({ params }: { params: { id: string } }) {
       setResponse(json);
     } catch (error) {
       setResponse({ error: "Failed to load application status." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submitDecision = async (decision: Decision) => {
+    setLoading(true);
+    setResponse(null);
+
+    try {
+      const res = await fetch(
+        `${apiBaseUrl}/api/applications/${params.id}/decision`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-User-Role": role,
+          },
+          body: JSON.stringify({
+            decision,
+            notes: decisionNote || undefined,
+          }),
+        },
+      );
+      const json = (await res.json()) as ApplicationResponse;
+      setResponse(json);
+    } catch (error) {
+      setResponse({ error: "Failed to submit decision." });
     } finally {
       setLoading(false);
     }
@@ -105,6 +136,41 @@ export default function StatusPage({ params }: { params: { id: string } }) {
             {loading ? "Loading..." : "Fetch status"}
           </button>
         </div>
+
+        {(role === "reviewer" || role === "admin") && (
+          <div className="grid gap-4 rounded-2xl bg-white p-6 shadow-sm">
+            <div>
+              <p className="text-xs font-semibold uppercase text-slate-500">
+                Reviewer decision
+              </p>
+              <p className="text-sm text-slate-600">
+                Override the automated workflow status if needed.
+              </p>
+            </div>
+            <textarea
+              className="min-h-[90px] rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              placeholder="Optional notes for audit trail"
+              value={decisionNote}
+              onChange={(event) => setDecisionNote(event.target.value)}
+            />
+            <div className="flex flex-col gap-3 md:flex-row">
+              <button
+                className="rounded-lg border border-slate-900 px-4 py-2 text-sm font-semibold text-slate-900"
+                onClick={() => submitDecision("approved")}
+                disabled={loading}
+              >
+                Approve
+              </button>
+              <button
+                className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white"
+                onClick={() => submitDecision("flagged")}
+                disabled={loading}
+              >
+                Flag
+              </button>
+            </div>
+          </div>
+        )}
 
         {response?.error && (
           <div className="rounded-xl border border-rose-200 bg-white p-4 text-sm text-rose-600">
