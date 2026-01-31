@@ -25,8 +25,15 @@ export type AiReviewResult = {
   confidenceLevel: number;
 };
 
-const GROK_API_KEY = process.env["GROK_API_KEY"] ?? process.env["XAI_API_KEY"];
 const GROK_API_URL = "https://api.x.ai/v1/chat/completions";
+
+function getGrokApiKey(): string | undefined {
+  return process.env["GROK_API_KEY"] ?? process.env["XAI_API_KEY"];
+}
+
+export function isGrokApiAvailable(): boolean {
+  return !!getGrokApiKey();
+}
 
 type GrokMessage = {
   role: "system" | "user" | "assistant";
@@ -42,7 +49,8 @@ type GrokResponse = {
 };
 
 async function callGrokAPI(messages: GrokMessage[]): Promise<string> {
-  if (!GROK_API_KEY) {
+  const apiKey = getGrokApiKey();
+  if (!apiKey) {
     throw new Error("Grok API key not configured");
   }
 
@@ -50,7 +58,7 @@ async function callGrokAPI(messages: GrokMessage[]): Promise<string> {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${GROK_API_KEY}`,
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model: "grok-4-latest",

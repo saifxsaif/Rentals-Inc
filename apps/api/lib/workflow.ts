@@ -1,5 +1,5 @@
 import { prisma } from "./prisma.js";
-import { analyzeDocumentsWithAI, analyzeDocumentsFallback } from "./ai.js";
+import { analyzeDocumentsWithAI, analyzeDocumentsFallback, isGrokApiAvailable } from "./ai.js";
 import type { UserRole } from "@prisma/client";
 
 const FRAUD_THRESHOLD = 0.7;
@@ -36,7 +36,7 @@ export async function runReviewWorkflow(
 
   // Run AI analysis
   let aiResult;
-  const useRealAI = !!process.env["GROK_API_KEY"] || !!process.env["XAI_API_KEY"];
+  const useRealAI = isGrokApiAvailable();
 
   if (useRealAI) {
     try {
