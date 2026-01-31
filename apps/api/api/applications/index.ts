@@ -40,7 +40,7 @@ export default async function handler(
     data: {
       applicantName,
       applicantEmail,
-      applicantPhone,
+      applicantPhone: applicantPhone ?? null,
       status: "submitted",
       documents: {
         create: documents.map((doc) => ({
