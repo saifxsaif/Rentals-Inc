@@ -30,15 +30,22 @@ const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 const GROK_API_URL = "https://api.x.ai/v1/chat/completions";
 
 function getOpenAIApiKey(): string | undefined {
-  return process.env["OPENAI_API_KEY"];
+  const key = process.env["OPENAI_API_KEY"];
+  console.log("[AI] OpenAI key exists:", !!key, key ? `(${key.slice(0, 10)}...)` : "(none)");
+  return key;
 }
 
 function getGrokApiKey(): string | undefined {
-  return process.env["GROK_API_KEY"] ?? process.env["XAI_API_KEY"];
+  const key = process.env["GROK_API_KEY"] ?? process.env["XAI_API_KEY"];
+  console.log("[AI] Grok key exists:", !!key);
+  return key;
 }
 
 export function isAiApiAvailable(): boolean {
-  return !!getOpenAIApiKey() || !!getGrokApiKey();
+  const openai = !!getOpenAIApiKey();
+  const grok = !!getGrokApiKey();
+  console.log("[AI] API available - OpenAI:", openai, "Grok:", grok);
+  return openai || grok;
 }
 
 // Legacy export for backward compatibility
@@ -64,7 +71,10 @@ async function callAIAPI(messages: ChatMessage[]): Promise<string> {
   const openaiKey = getOpenAIApiKey();
   const grokKey = getGrokApiKey();
 
+  console.log("[AI] callAIAPI - OpenAI key:", !!openaiKey, "Grok key:", !!grokKey);
+
   if (openaiKey) {
+    console.log("[AI] Using OpenAI API");
     const response = await fetch(OPENAI_API_URL, {
       method: "POST",
       headers: {
