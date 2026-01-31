@@ -8,7 +8,7 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse,
 ): Promise<void> {
-  setCors(res);
+  setCors(req, res);
 
   if (req.method === "OPTIONS") {
     res.status(204).end();

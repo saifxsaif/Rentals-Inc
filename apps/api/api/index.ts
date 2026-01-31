@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { sendJson, setCors } from "../lib/http.js";
 
 export default function handler(req: VercelRequest, res: VercelResponse): void {
-  setCors(res);
+  setCors(req, res);
 
   if (req.method === "OPTIONS") {
     res.status(204).end();

@@ -1,9 +1,15 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-export function setCors(res: VercelResponse): void {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+export function setCors(req: VercelRequest, res: VercelResponse): void {
+  const origin = (req.headers.origin as string | undefined) ?? "*";
+  res.setHeader("Access-Control-Allow-Origin", origin);
+  res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type,X-User-Role,X-Applicant-Email");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type,X-User-Role,X-Applicant-Email,Accept,Origin,X-Requested-With",
+  );
+  res.setHeader("Access-Control-Max-Age", "86400");
 }
 
 export function sendJson(
