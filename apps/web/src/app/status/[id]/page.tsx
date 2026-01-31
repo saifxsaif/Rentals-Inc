@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useParams } from "next/navigation";
 
 type Role = "applicant" | "reviewer" | "admin";
 
@@ -31,7 +32,14 @@ type ApplicationResponse = {
 
 type Decision = "approved" | "flagged";
 
-export default function StatusPage({ params }: { params: { id: string } }) {
+export default function StatusPage() {
+  const params = useParams();
+  const id =
+    typeof params?.id === "string"
+      ? params.id
+      : Array.isArray(params?.id)
+        ? params.id[0]
+        : undefined;
   const [role, setRole] = useState<Role>("applicant");
   const [email, setEmail] = useState("");
   const [response, setResponse] = useState<ApplicationResponse | null>(null);
@@ -48,7 +56,12 @@ export default function StatusPage({ params }: { params: { id: string } }) {
     setResponse(null);
 
     try {
-      const res = await fetch(`${apiBaseUrl}/api/applications/${params.id}`, {
+      if (!id) {
+        setResponse({ error: "Missing application id in the URL." });
+        return;
+      }
+
+      const res = await fetch(`${apiBaseUrl}/api/applications/${id}`, {
         headers: {
           "X-User-Role": role,
           "X-Applicant-Email": email,
@@ -68,8 +81,13 @@ export default function StatusPage({ params }: { params: { id: string } }) {
     setResponse(null);
 
     try {
+      if (!id) {
+        setResponse({ error: "Missing application id in the URL." });
+        return;
+      }
+
       const res = await fetch(
-        `${apiBaseUrl}/api/applications/${params.id}/decision`,
+        `${apiBaseUrl}/api/applications/${id}/decision`,
         {
           method: "POST",
           headers: {
@@ -98,7 +116,7 @@ export default function StatusPage({ params }: { params: { id: string } }) {
           <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
             Application status
           </p>
-          <h1 className="text-2xl font-semibold">{params.id}</h1>
+          <h1 className="text-2xl font-semibold">{id ?? "Unknown ID"}</h1>
           <p className="text-sm text-slate-600">
             Use your role and applicant email to retrieve the record.
           </p>
