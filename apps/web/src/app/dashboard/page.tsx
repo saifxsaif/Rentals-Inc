@@ -91,7 +91,7 @@ export default function Dashboard() {
     }
   }, [authLoading, user, router]);
 
-  const fetchApplications = async () => {
+  const fetchApplications = async (resetOffset = false) => {
     setLoading(true);
     setError(null);
 
@@ -100,12 +100,19 @@ export default function Dashboard() {
       if (statusFilter !== "all") {
         params.set("status", statusFilter);
       }
-      params.set("limit", String(pagination.limit));
-      params.set("offset", String(pagination.offset));
+      params.set("limit", "20");
+      params.set("offset", resetOffset ? "0" : String(pagination.offset));
 
       const res = await fetch(`${apiBaseUrl}/api/applications/list?${params}`, {
         credentials: "include",
       });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        setError(errorData.error ?? `Error: ${res.status}`);
+        setApplications([]);
+        return;
+      }
 
       const json = (await res.json()) as ApplicationsResponse;
 
@@ -119,7 +126,8 @@ export default function Dashboard() {
         }
       }
     } catch (err) {
-      setError("Failed to fetch applications");
+      console.error("Fetch error:", err);
+      setError("Failed to fetch applications. Please try again.");
       setApplications([]);
     } finally {
       setLoading(false);
@@ -128,7 +136,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (user && (user.role === "reviewer" || user.role === "admin")) {
-      fetchApplications();
+      fetchApplications(true); // Reset offset when filter changes
     }
   }, [statusFilter, user]);
 
@@ -190,7 +198,7 @@ export default function Dashboard() {
         {/* Filters */}
         <div className="mb-6 flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium text-slate-600">Filter:</span>
-          {["all", "submitted", "under_review", "flagged", "approved"].map((status) => (
+          {["all", "under_review", "flagged", "approved"].map((status) => (
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
@@ -204,7 +212,7 @@ export default function Dashboard() {
             </button>
           ))}
           <button
-            onClick={fetchApplications}
+            onClick={() => fetchApplications(false)}
             className="ml-auto rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
           >
             Refresh
