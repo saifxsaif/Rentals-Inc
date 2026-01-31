@@ -66,12 +66,17 @@ model Document {
 }
 
 model ReviewResult {
-  id            String   @id @default(cuid())
-  applicationId String
-  fraudScore    Float
-  summary       String
-  signals       Json?
-  createdAt     DateTime @default(now())
+  id                      String   @id @default(cuid())
+  applicationId           String
+  fraudScore              Float
+  summary                 String
+  aiNotes                 String?  @db.Text
+  signals                 Json?
+  documentClassifications Json?
+  recommendedAction       String?
+  confidenceLevel         Float?
+  isAiGenerated           Boolean  @default(true)
+  createdAt               DateTime @default(now())
 
   application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 }
