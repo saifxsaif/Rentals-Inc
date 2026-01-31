@@ -32,6 +32,7 @@ export default function Home() {
   const [documents, setDocuments] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<SubmissionResponse | null>(null);
+  const [applicationId, setApplicationId] = useState<string | null>(null);
 
   const apiBaseUrl = useMemo(
     () => process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001",
@@ -55,6 +56,7 @@ export default function Home() {
     event.preventDefault();
     setLoading(true);
     setResponse(null);
+    setApplicationId(null);
 
     try {
       const payload = {
@@ -79,6 +81,7 @@ export default function Home() {
 
       const json = (await res.json()) as SubmissionResponse;
       setResponse(json);
+      setApplicationId(json.application?.id ?? null);
     } catch (error) {
       setResponse({ error: "Submission failed. Please try again." });
     } finally {
@@ -186,12 +189,18 @@ export default function Home() {
                 <p className="font-semibold text-slate-900">Submission complete</p>
                 <p>Application ID: {response.application.id}</p>
                 <p>Status: {response.application.status}</p>
-                <a
-                  className="mt-2 inline-flex w-fit rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-900"
-                  href={`/status/${response.application.id}`}
-                >
-                  View status
-                </a>
+                {applicationId ? (
+                  <a
+                    className="mt-2 inline-flex w-fit rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-900"
+                    href={`/status/${applicationId}`}
+                  >
+                    View status
+                  </a>
+                ) : (
+                  <p className="text-xs text-rose-600">
+                    Missing application ID in response. Please retry.
+                  </p>
+                )}
               </div>
             )}
           </section>
