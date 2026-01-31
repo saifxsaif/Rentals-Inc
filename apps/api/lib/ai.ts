@@ -74,7 +74,7 @@ async function callAIAPI(messages: ChatMessage[]): Promise<string> {
   console.log("[AI] callAIAPI - OpenAI key:", !!openaiKey, "Grok key:", !!grokKey);
 
   if (openaiKey) {
-    console.log("[AI] Using OpenAI API");
+    console.log("[AI] Using OpenAI API with key:", openaiKey.slice(0, 15) + "...");
     const response = await fetch(OPENAI_API_URL, {
       method: "POST",
       headers: {
@@ -89,12 +89,16 @@ async function callAIAPI(messages: ChatMessage[]): Promise<string> {
       }),
     });
 
+    console.log("[AI] OpenAI response status:", response.status);
+
     if (!response.ok) {
       const errorText = await response.text();
+      console.error("[AI] OpenAI API error:", response.status, errorText);
       throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
     }
 
     const data = (await response.json()) as ChatResponse;
+    console.log("[AI] OpenAI response received, choices:", data.choices?.length);
     return data.choices[0]?.message?.content ?? "";
   }
 
@@ -267,7 +271,9 @@ export async function analyzeDocumentsWithAI(
     const response = await callAIAPI(messages);
     return parseGrokResponse(response, documents);
   } catch (error) {
-    console.error("Grok AI analysis failed:", error);
+    console.error("[AI] AI analysis failed with error:", error);
+    console.error("[AI] Error message:", error instanceof Error ? error.message : String(error));
+    console.error("[AI] Falling back to rule-based analysis");
     // Fallback to rule-based analysis
     return analyzeDocumentsFallback(documents);
   }
