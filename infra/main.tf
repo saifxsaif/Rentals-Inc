@@ -25,6 +25,7 @@ resource "vercel_project" "api" {
   root_directory = "apps/api"
 }
 
+# API Environment Variables
 resource "vercel_project_environment_variable" "api_database_url" {
   project_id = vercel_project.api.id
   key        = "DATABASE_URL"
@@ -32,10 +33,17 @@ resource "vercel_project_environment_variable" "api_database_url" {
   target     = ["development", "preview", "production"]
 }
 
-resource "vercel_project_environment_variable" "api_ai_key" {
+resource "vercel_project_environment_variable" "api_grok_key" {
   project_id = vercel_project.api.id
-  key        = "AI_API_KEY"
-  value      = var.ai_api_key
+  key        = "GROK_API_KEY"
+  value      = var.grok_api_key
+  target     = ["development", "preview", "production"]
+}
+
+resource "vercel_project_environment_variable" "api_openai_key" {
+  project_id = vercel_project.api.id
+  key        = "OPENAI_API_KEY"
+  value      = var.openai_api_key
   target     = ["development", "preview", "production"]
 }
 
@@ -43,5 +51,13 @@ resource "vercel_project_environment_variable" "api_blob_token" {
   project_id = vercel_project.api.id
   key        = "BLOB_READ_WRITE_TOKEN"
   value      = var.blob_read_write_token
+  target     = ["development", "preview", "production"]
+}
+
+# Web Environment Variables
+resource "vercel_project_environment_variable" "web_api_base_url" {
+  project_id = vercel_project.web.id
+  key        = "NEXT_PUBLIC_API_BASE_URL"
+  value      = var.api_base_url
   target     = ["development", "preview", "production"]
 }

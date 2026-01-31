@@ -24,18 +24,32 @@ variable "api_project_name" {
 
 variable "database_url" {
   type        = string
-  description = "Postgres connection string"
+  description = "Postgres connection string (Neon)"
   sensitive   = true
 }
 
-variable "ai_api_key" {
+variable "grok_api_key" {
   type        = string
-  description = "API key for AI document analysis"
+  description = "Grok (x.ai) API key for AI document analysis"
   sensitive   = true
+}
+
+variable "openai_api_key" {
+  type        = string
+  description = "OpenAI API key (fallback for AI analysis)"
+  sensitive   = true
+  default     = ""
 }
 
 variable "blob_read_write_token" {
   type        = string
   description = "Vercel Blob read/write token"
   sensitive   = true
+  default     = ""
+}
+
+variable "api_base_url" {
+  type        = string
+  description = "API base URL for frontend"
+  default     = "https://rentals-inc-api.vercel.app"
 }
