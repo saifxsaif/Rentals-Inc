@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { prisma } from "../../lib/prisma.js";
-import { canViewApplication, parseRole } from "../../lib/auth.js";
+import { getSessionUser } from "../../lib/session.js";
 import { sendJson, setCors } from "../../lib/http.js";
 
 export default async function handler(
@@ -19,9 +19,10 @@ export default async function handler(
     return;
   }
 
-  const role = parseRole(req.headers["x-user-role"] as string | undefined);
-  if (!canViewApplication(role)) {
-    sendJson(res, 403, { error: "Insufficient permissions" });
+  // Get authenticated user
+  const user = await getSessionUser(req);
+  if (!user) {
+    sendJson(res, 401, { error: "Authentication required" });
     return;
   }
 
@@ -45,13 +46,15 @@ export default async function handler(
     return;
   }
 
-  if (role === "applicant") {
-    const applicantEmail = (req.headers["x-applicant-email"] as string | undefined) ?? "";
-    if (!applicantEmail || applicantEmail !== application.applicantEmail) {
-      sendJson(res, 403, { error: "Applicant email does not match" });
+  // Access control based on role
+  if (user.role === "applicant") {
+    // Applicants can only view their own applications
+    if (application.applicantId !== user.id && application.applicantEmail !== user.email) {
+      sendJson(res, 403, { error: "You can only view your own applications" });
       return;
     }
   }
+  // Reviewers and admins can view all applications
 
   sendJson(res, 200, { application });
 }

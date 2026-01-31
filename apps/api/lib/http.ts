@@ -1,14 +1,16 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 export function setCors(req: VercelRequest, res: VercelResponse): void {
-  const origin = (req.headers.origin as string | undefined) ?? "*";
-  res.setHeader("Access-Control-Allow-Origin", origin);
+  const origin = req.headers.origin as string | undefined;
+  // For credentials to work, we need a specific origin, not *
+  res.setHeader("Access-Control-Allow-Origin", origin ?? "https://rentals-inc-web.vercel.app");
   res.setHeader("Vary", "Origin");
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Content-Type,X-User-Role,X-Applicant-Email,Accept,Origin,X-Requested-With",
+    "Content-Type,Accept,Origin,X-Requested-With",
   );
+  res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Access-Control-Max-Age", "86400");
 }
 

@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { prisma } from "../../../lib/prisma.js";
-import { canDecideApplication, parseRole } from "../../../lib/auth.js";
+import { getSessionUser } from "../../../lib/session.js";
 import { decisionInputSchema } from "../../../lib/validation.js";
 import { parseJsonBody, sendJson, setCors } from "../../../lib/http.js";
 
@@ -20,9 +20,16 @@ export default async function handler(
     return;
   }
 
-  const role = parseRole(req.headers["x-user-role"] as string | undefined);
-  if (!canDecideApplication(role)) {
-    sendJson(res, 403, { error: "Insufficient permissions" });
+  // Get authenticated user
+  const user = await getSessionUser(req);
+  if (!user) {
+    sendJson(res, 401, { error: "Authentication required" });
+    return;
+  }
+
+  // Only reviewers and admins can make decisions
+  if (user.role !== "reviewer" && user.role !== "admin") {
+    sendJson(res, 403, { error: "Only reviewers and admins can make decisions" });
     return;
   }
 
@@ -49,11 +56,13 @@ export default async function handler(
   await prisma.auditEvent.create({
     data: {
       applicationId,
-      actorRole: role,
+      actorRole: user.role,
       action: "manual_decision",
       metadata: {
         decision,
         notes: notes ?? null,
+        userId: user.id,
+        userName: user.name,
       },
     },
   });

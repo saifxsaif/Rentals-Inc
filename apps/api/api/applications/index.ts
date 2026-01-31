@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { prisma } from "../../lib/prisma.js";
-import { parseRole, canCreateApplication } from "../../lib/auth.js";
+import { getSessionUser } from "../../lib/session.js";
 import { applicationInputSchema } from "../../lib/validation.js";
 import { parseJsonBody, sendJson, setCors } from "../../lib/http.js";
 import { runReviewWorkflow } from "../../lib/workflow.js";
@@ -21,9 +21,16 @@ export default async function handler(
     return;
   }
 
-  const role = parseRole(req.headers["x-user-role"] as string | undefined);
-  if (!canCreateApplication(role)) {
-    sendJson(res, 403, { error: "Insufficient permissions" });
+  // Get authenticated user
+  const user = await getSessionUser(req);
+  if (!user) {
+    sendJson(res, 401, { error: "Authentication required" });
+    return;
+  }
+
+  // Only applicants can create applications
+  if (user.role !== "applicant") {
+    sendJson(res, 403, { error: "Only applicants can submit applications" });
     return;
   }
 
@@ -42,6 +49,7 @@ export default async function handler(
       applicantEmail,
       applicantPhone: applicantPhone ?? null,
       status: "submitted",
+      applicantId: user.id, // Link to authenticated user
       documents: {
         create: documents.map((doc) => ({
           filename: doc.filename,
@@ -52,15 +60,15 @@ export default async function handler(
       },
       auditEvents: {
         create: {
-          actorRole: role,
+          actorRole: user.role,
           action: "application_submitted",
-          metadata: { documentCount: documents.length },
+          metadata: { documentCount: documents.length, userId: user.id },
         },
       },
     },
   });
 
-  await runReviewWorkflow(application.id, role);
+  await runReviewWorkflow(application.id, user.role);
 
   const refreshed = await prisma.application.findUnique({
     where: { id: application.id },

@@ -73,36 +73,43 @@ async function callAIAPI(messages: ChatMessage[]): Promise<string> {
 
   console.log("[AI] callAIAPI - OpenAI key:", !!openaiKey, "Grok key:", !!grokKey);
 
+  // Try OpenAI first
   if (openaiKey) {
-    console.log("[AI] Using OpenAI API with key:", openaiKey.slice(0, 15) + "...");
-    const response = await fetch(OPENAI_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${openaiKey}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages,
-        temperature: 0.3,
-        max_tokens: 2000,
-      }),
-    });
+    try {
+      console.log("[AI] Trying OpenAI API...");
+      const response = await fetch(OPENAI_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${openaiKey}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages,
+          temperature: 0.3,
+          max_tokens: 2000,
+        }),
+      });
 
-    console.log("[AI] OpenAI response status:", response.status);
+      console.log("[AI] OpenAI response status:", response.status);
 
-    if (!response.ok) {
+      if (response.ok) {
+        const data = (await response.json()) as ChatResponse;
+        console.log("[AI] OpenAI success!");
+        return data.choices[0]?.message?.content ?? "";
+      }
+      
+      // OpenAI failed, log and try Grok
       const errorText = await response.text();
-      console.error("[AI] OpenAI API error:", response.status, errorText);
-      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+      console.log("[AI] OpenAI failed, will try Grok:", response.status, errorText.slice(0, 100));
+    } catch (err) {
+      console.log("[AI] OpenAI error, will try Grok:", err);
     }
-
-    const data = (await response.json()) as ChatResponse;
-    console.log("[AI] OpenAI response received, choices:", data.choices?.length);
-    return data.choices[0]?.message?.content ?? "";
   }
 
+  // Try Grok as fallback or primary
   if (grokKey) {
+    console.log("[AI] Using Grok API...");
     const response = await fetch(GROK_API_URL, {
       method: "POST",
       headers: {
@@ -119,10 +126,12 @@ async function callAIAPI(messages: ChatMessage[]): Promise<string> {
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error("[AI] Grok API error:", response.status, errorText);
       throw new Error(`Grok API error: ${response.status} - ${errorText}`);
     }
 
     const data = (await response.json()) as ChatResponse;
+    console.log("[AI] Grok success!");
     return data.choices[0]?.message?.content ?? "";
   }
 

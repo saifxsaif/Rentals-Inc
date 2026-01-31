@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { prisma } from "../../lib/prisma.js";
-import { parseRole, canViewApplication } from "../../lib/auth.js";
+import { getSessionUser } from "../../lib/session.js";
 import { sendJson, setCors } from "../../lib/http.js";
 
 export default async function handler(
@@ -19,11 +19,10 @@ export default async function handler(
     return;
   }
 
-  const role = parseRole(req.headers["x-user-role"] as string | undefined);
-
-  // Only reviewers and admins can list all applications
-  if (role !== "reviewer" && role !== "admin") {
-    sendJson(res, 403, { error: "Only reviewers and admins can view all applications" });
+  // Get authenticated user
+  const user = await getSessionUser(req);
+  if (!user) {
+    sendJson(res, 401, { error: "Authentication required" });
     return;
   }
 
@@ -33,6 +32,14 @@ export default async function handler(
   const offset = parseInt(req.query.offset as string) || 0;
 
   const whereClause: Record<string, unknown> = {};
+
+  // Role-based filtering
+  if (user.role === "applicant") {
+    // Applicants can only see their own applications
+    whereClause.applicantId = user.id;
+  }
+  // Reviewers and admins can see all applications
+
   if (status && ["submitted", "under_review", "approved", "flagged"].includes(status)) {
     whereClause.status = status;
   }
