@@ -119,7 +119,7 @@ function buildDocumentAnalysisPrompt(documents: Document[], applicantInfo: {
   name: string;
   email: string;
   phone?: string | null;
-}): GrokMessage[] {
+}): ChatMessage[] {
   const documentList = documents
     .map(
       (doc, i) =>
