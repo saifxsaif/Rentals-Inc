@@ -25,22 +25,33 @@ export type AiReviewResult = {
   confidenceLevel: number;
 };
 
+// API Configuration
+const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 const GROK_API_URL = "https://api.x.ai/v1/chat/completions";
+
+function getOpenAIApiKey(): string | undefined {
+  return process.env["OPENAI_API_KEY"];
+}
 
 function getGrokApiKey(): string | undefined {
   return process.env["GROK_API_KEY"] ?? process.env["XAI_API_KEY"];
 }
 
-export function isGrokApiAvailable(): boolean {
-  return !!getGrokApiKey();
+export function isAiApiAvailable(): boolean {
+  return !!getOpenAIApiKey() || !!getGrokApiKey();
 }
 
-type GrokMessage = {
+// Legacy export for backward compatibility
+export function isGrokApiAvailable(): boolean {
+  return isAiApiAvailable();
+}
+
+type ChatMessage = {
   role: "system" | "user" | "assistant";
   content: string;
 };
 
-type GrokResponse = {
+type ChatResponse = {
   choices: Array<{
     message: {
       content: string;
@@ -48,33 +59,60 @@ type GrokResponse = {
   }>;
 };
 
-async function callGrokAPI(messages: GrokMessage[]): Promise<string> {
-  const apiKey = getGrokApiKey();
-  if (!apiKey) {
-    throw new Error("Grok API key not configured");
+async function callAIAPI(messages: ChatMessage[]): Promise<string> {
+  // Try OpenAI first, then fall back to Grok
+  const openaiKey = getOpenAIApiKey();
+  const grokKey = getGrokApiKey();
+
+  if (openaiKey) {
+    const response = await fetch(OPENAI_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${openaiKey}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages,
+        temperature: 0.3,
+        max_tokens: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+    }
+
+    const data = (await response.json()) as ChatResponse;
+    return data.choices[0]?.message?.content ?? "";
   }
 
-  const response = await fetch(GROK_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "grok-4-latest",
-      messages,
-      temperature: 0.3,
-      max_tokens: 2000,
-    }),
-  });
+  if (grokKey) {
+    const response = await fetch(GROK_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${grokKey}`,
+      },
+      body: JSON.stringify({
+        model: "grok-4-latest",
+        messages,
+        temperature: 0.3,
+        max_tokens: 2000,
+      }),
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Grok API error: ${response.status} - ${errorText}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Grok API error: ${response.status} - ${errorText}`);
+    }
+
+    const data = (await response.json()) as ChatResponse;
+    return data.choices[0]?.message?.content ?? "";
   }
 
-  const data = (await response.json()) as GrokResponse;
-  return data.choices[0]?.message?.content ?? "";
+  throw new Error("No AI API key configured");
 }
 
 function buildDocumentAnalysisPrompt(documents: Document[], applicantInfo: {
@@ -216,7 +254,7 @@ export async function analyzeDocumentsWithAI(
 ): Promise<AiReviewResult> {
   try {
     const messages = buildDocumentAnalysisPrompt(documents, applicantInfo);
-    const response = await callGrokAPI(messages);
+    const response = await callAIAPI(messages);
     return parseGrokResponse(response, documents);
   } catch (error) {
     console.error("Grok AI analysis failed:", error);
